@@ -30,7 +30,8 @@ async fn packet_testing() {
     println!("Protocol packet: {:?}", packet.into_protocol_format());
 }
 
+pub(crate) mod errors;
 pub(crate) mod players;
 pub(crate) mod protocol;
 pub(crate) mod server;
-pub(crate) mod errors;
+pub(crate) mod misc;
