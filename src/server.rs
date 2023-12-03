@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    cell::{RefCell, Ref},
+    sync::{Arc, Mutex},
+};
 use tokio::net::TcpListener;
 
 use crate::{
@@ -16,7 +19,7 @@ pub struct MinecraftServer {
     pub port: u16,
 
     /// The list of players currently connected to the server.
-    pub players: Arc<Mutex<Vec<Player>>>,
+    pub players: RefCell<Vec<Player>>,
 }
 
 ///
@@ -46,7 +49,7 @@ impl MinecraftServer {
         Arc::new(Self {
             address: address.to_string(),
             port,
-            players: Arc::new(Mutex::new(Vec::new())),
+            players: RefCell::new(Vec::new()),
         })
     }
 
@@ -68,24 +71,26 @@ impl MinecraftServer {
     /// ```
     pub fn start_server(&self) {
         let server = self.clone();
-        let players_clone = Arc::clone(&self.players);
-
+    
         tokio::spawn(async move {
             let listener = TcpListener::bind(format!("{}:{}", server.address, server.port))
                 .await
                 .unwrap();
-
+    
             loop {
                 match listener.accept().await {
                     Ok((stream, _)) => {
-                        let player = Player {
+                        let mut server_clone = server.clone();
+                        let mut player = Player {
                             connection: Arc::new(Mutex::new(stream)),
                             username: "wowie".into(),
                             uuid: UUID { data: [0; 16] },
                         };
-
-                        players_clone.lock().unwrap().push(player);
-                        tokio::spawn(handle_connection(player, server));
+    
+                        server.players.borrow_mut().push(player.clone());
+                        tokio::spawn(async move {
+                            handle_connection(&mut player, &mut server_clone).await;
+                        });
                     }
                     Err(e) => {
                         eprintln!("Error: {}", e);
@@ -94,10 +99,11 @@ impl MinecraftServer {
             }
         });
     }
+    
 
     /// Returns a vector of players currently connected to the server.
-    pub fn get_players(&self) -> Vec<Player> {
-        *self.players.lock().unwrap()
+    pub fn get_players(&self) -> Ref<'_, Vec<Player>> {
+        self.players.borrow()
     }
 
     /// Retrieves a player by their username.
@@ -111,9 +117,7 @@ impl MinecraftServer {
     /// An optional reference to the player if found, otherwise None.
     ///
     pub fn get_player_username(&self, username: &str) -> Option<&Player> {
-        self.get_players()
-            .iter()
-            .find(|&player| player.username.eq(username))
+        unimplemented!()
     }
 
     /// Retrieves a player by their UUID.
@@ -126,10 +130,8 @@ impl MinecraftServer {
     ///
     /// An optional reference to the player if found, otherwise None.
     ///
-    pub fn get_player_uuid(&self, uuid: &UUID) -> Option<&Player> {
-        self.get_players()
-            .iter()
-            .find(|&player| player.uuid.eq(uuid))
+    pub fn get_player_uuid(&self, uuid: UUID) -> Option<&Player> {
+        unimplemented!()
     }
 
     /// Sends a packet to a specific player.
@@ -168,7 +170,7 @@ impl MinecraftServer {
     where
         P: Packet + Sync,
     {
-        for player in self.get_players().iter_mut() {
+        for player in self.get_players().iter() {
             player.send_packet(packet).await?;
         }
 
@@ -203,8 +205,9 @@ impl MinecraftServer {
 /// # Panics
 ///
 /// This function will panic if it fails to obtain the peer address of the client.
-async fn handle_connection(player: Player, server: MinecraftServer) {
-
+async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
     let peer_addr = player.connection.lock().unwrap().peer_addr().unwrap();
     println!("New connection from {}", peer_addr);
+
+    player.connect(server).await.unwrap();
 }

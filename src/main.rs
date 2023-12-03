@@ -1,7 +1,5 @@
 use std::sync::Arc;
-use std::time::Duration;
 
-use crate::players::UUID;
 use crate::protocol::{server::handshake::HandshakePacket, Packet};
 use server::MinecraftServer;
 use tokio::signal;
@@ -15,14 +13,6 @@ async fn main() {
     println!("Server started.");
 
     packet_testing().await;
-
-    tokio::spawn(async move {
-        loop {
-            println!("Players: {:?}", server.players);
-            tokio::time::sleep(Duration::from_secs(1)).await;
-        }
-    });
-
     signal::ctrl_c().await.unwrap();
 }
 

@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum PacketError {
     InvalidPacketID,
     InvalidPacketData,
@@ -5,6 +6,7 @@ pub enum PacketError {
     ErrorSendingPacket,
 }
 
+#[derive(Debug)]
 pub enum ConnectionError {
     InvalidHandshake,
     InvalidLogin,
