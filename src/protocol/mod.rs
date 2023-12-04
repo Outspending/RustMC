@@ -1,3 +1,5 @@
+use bytes::{BytesMut, Buf};
+
 ///
 /// This module contains everything related to the Minecraft protocol.
 /// 
@@ -69,6 +71,45 @@ impl PacketFormatter {
         formatted_data.extend_from_slice(&data);                                     // Data
 
         data
+    }
+
+    /// Reads a variable-length integer from the given buffer.
+    /// 
+    /// This function reads a variable-length integer from the provided `buffer` and returns it along with the number of bytes consumed.
+    /// The integer is encoded using a variable number of bytes, with each byte representing 7 bits of the integer value.
+    /// The most significant bit (MSB) of each byte indicates whether there are more bytes to follow.
+    /// If the buffer does not contain enough bytes to read a complete integer, or if the integer exceeds 5 bytes, `None` is returned.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `buffer` - The buffer containing the bytes to read from.
+    /// 
+    /// # Returns
+    /// 
+    /// A tuple containing the parsed integer value and the number of bytes consumed, wrapped in an `Option`.
+    /// If the integer cannot be parsed or if the buffer is empty, `None` is returned.
+    pub fn read_varint(buffer: &mut BytesMut) -> Option<(usize, usize)> {
+        let mut result = 0;
+        let mut count = 0;
+
+        loop {
+            if count == 5 {
+                return None;
+            }
+
+            if buffer.len() == 0 {
+                return None;
+            }
+
+            let byte = buffer.get_u8();
+            result |= ((byte & 0xF7) as usize) << (7 * count);
+
+            if (byte & 0x80) == 0 {
+                return Some((result, count + 1));
+            }
+
+            count += 1;
+        }
     }
 
 }

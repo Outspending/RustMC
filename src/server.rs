@@ -2,12 +2,13 @@ use std::{
     cell::{RefCell, Ref},
     sync::Arc, io::{Cursor, ErrorKind}, vec
 };
+use bytes::BytesMut;
 use tokio::{net::{TcpListener, TcpStream}, sync::Mutex, io::AsyncReadExt};
 
 use crate::{
     errors::{PacketError, ConnectionError},
     players::{Client, Player, UUID},
-    protocol::Packet,
+    protocol::{Packet, PacketFormatter},
 };
 
 /// Represents a Minecraft server.
@@ -184,15 +185,30 @@ impl MinecraftServer {
 ///
 /// This function will panic if it fails to obtain the peer address of the client.
 async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
-    let peer_addr = player.connection.lock().await.peer_addr().unwrap();
-    println!("New connection from {}", peer_addr);
-
     player.connect(server).await.unwrap();
 
+    let mut connection = player.connection.lock().await;
+    let peer_addr = connection.peer_addr().unwrap();
+    let mut buffer = BytesMut::with_capacity(1024);
+    println!("New connection from {}", peer_addr);
+
     loop {
-        if let Err(e) = read_packet(player.connection.clone()).await {
-            eprintln!("Error reading packet: {:?}", e);
+        let mut read_buffer = [0; 1024];
+        let bytes_read = connection.read(&mut read_buffer).await.unwrap();
+
+        if bytes_read == 0 {
             break;
+        }
+
+        buffer.extend_from_slice(&read_buffer[..bytes_read]);
+
+        if let Some((length, bytes_read)) = PacketFormatter::read_varint(&mut buffer) {
+            if buffer.len() >= length {
+                let packet_data = buffer.split_to(length);
+                println!("Received Packet: {:?}", packet_data);
+            } else {
+                break;
+            }
         }
     }
 }
