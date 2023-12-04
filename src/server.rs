@@ -1,8 +1,8 @@
 use std::{
     cell::{RefCell, Ref},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, sync::Mutex};
 
 use crate::{
     errors::PacketError,
@@ -134,28 +134,6 @@ impl MinecraftServer {
         unimplemented!()
     }
 
-    /// Sends a packet to a specific player.
-    ///
-    /// # Arguments
-    ///
-    /// * `player` - The player to send the packet to.
-    /// * `packet` - The packet to send.
-    ///
-    /// # Returns
-    ///
-    /// Result indicating success or failure of sending the packet.
-    ///
-    pub async fn send_packet<P>(
-        &mut self,
-        player: &mut Player,
-        packet: &P,
-    ) -> Result<(), PacketError>
-    where
-        P: Packet + Sync,
-    {
-        player.send_packet(packet).await
-    }
-
     /// Broadcasts a packet to all connected players.
     ///
     /// # Arguments
@@ -170,7 +148,7 @@ impl MinecraftServer {
     where
         P: Packet + Sync,
     {
-        for player in self.get_players().iter() {
+        for player in self.players.borrow_mut().iter_mut() {
             player.send_packet(packet).await?;
         }
 
@@ -206,7 +184,7 @@ impl MinecraftServer {
 ///
 /// This function will panic if it fails to obtain the peer address of the client.
 async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
-    let peer_addr = player.connection.lock().unwrap().peer_addr().unwrap();
+    let peer_addr = player.connection.lock().await.peer_addr().unwrap();
     println!("New connection from {}", peer_addr);
 
     player.connect(server).await.unwrap();

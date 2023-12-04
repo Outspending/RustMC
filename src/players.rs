@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use async_trait::async_trait;
-use tokio::net::TcpStream;
+use tokio::{net::TcpStream, sync::Mutex, io::AsyncWriteExt};
 
 use crate::{
     errors::{ConnectionError, PacketError},
@@ -17,7 +17,7 @@ pub trait Client {
 
     fn disconnect(&self) -> Result<(), ConnectionError>;
 
-    async fn send_packet<P>(&self, packet: &P) -> Result<(), PacketError>
+    async fn send_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
     where
         P: Packet + Sync;
 }
@@ -48,9 +48,8 @@ impl Client for Player {
     async fn connect(&mut self, server: &mut MinecraftServer) -> Result<(), ConnectionError> {
         println!("Player {} connected to server.", self.username);
 
-        server
+        self
             .send_packet(
-                self,
                 &HandshakePacket {
                     protocol_version: 271,
                     server_address: server.address.clone(),
@@ -68,21 +67,18 @@ impl Client for Player {
         Ok(())
     }
 
-    async fn send_packet<P>(&self, packet: &P) -> Result<(), PacketError>
+    async fn send_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
     where
         P: Packet + Sync,
     {
-        todo!("Send packet to client.");
-        // let connection = Arc::clone(&self.connection);
-        // let data = packet.into_protocol_format();
+        let connection = self.connection.clone();
+        let data = packet.into_protocol_format();
 
-        // Runtime::new().unwrap().block_on(async {
-        //     let mut connection = connection.lock().unwrap();
+        let mut connection = connection.lock().await;
 
-        //     match connection.write_all(&data).await {
-        //         Ok(_) => Ok(()),
-        //         Err(_) => Err(PacketError::ErrorSendingPacket),
-        //     }
-        // })
+        match connection.write_all(&data).await {
+            Ok(_) => Ok(()),
+            Err(_) => Err(PacketError::ErrorSendingPacket),
+        }
     }
 }
