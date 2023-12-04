@@ -1,3 +1,6 @@
 {
-    "discord.enabled": true
+    "discord.enabled": true,
+    "rust-analyzer.linkedProjects": [
+        ".\\rustmc-players\\Cargo.toml"
+    ]
 }

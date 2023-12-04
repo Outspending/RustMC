@@ -118,7 +118,6 @@ pub struct PacketRetriever;
 /// This struct represents a packet retriever, responsible for retrieving packets from a TCP connection.
 /// It provides methods for creating a new instance and asynchronously retrieving packets from the connection.
 impl PacketRetriever {
-
     /// Asynchronously retrieves packets from the player's connection.
     ///
     /// This function reads data from the player's connection in a loop until no more data is available.
@@ -142,19 +141,19 @@ impl PacketRetriever {
     /// ```
     pub async fn retrieve_packets(connection: &mut MutexGuard<'_, TcpStream>) {
         let mut buffer = BytesMut::with_capacity(1024);
-    
+
         loop {
             let mut read_buffer: [u8; 1024] = [0; 1024];
             match connection.read(&mut read_buffer).await {
                 Ok(bytes_read) => {
                     println!("Bytes read: {}", bytes_read);
-    
+
                     if bytes_read == 0 {
                         break;
                     }
-    
+
                     buffer.extend_from_slice(&read_buffer[..bytes_read]);
-    
+
                     if let Some((length, _)) = PacketFormatter::read_varint(&mut buffer) {
                         if buffer.len() >= length {
                             let packet_data = buffer.split_to(length);
@@ -165,14 +164,16 @@ impl PacketRetriever {
                     }
                 }
                 Err(err) => {
-                    eprintln!("Error reading from TcpStream from connection: {:?}", connection);
+                    eprintln!(
+                        "Error reading from TcpStream from connection: {:?}",
+                        connection
+                    );
                     eprintln!("Error: {:?}", err);
                     break;
                 }
             }
         }
     }
-    
 
     pub async fn process_packet(packet_data: BytesMut) {
         println!("Received Packet: {:?}", packet_data);
@@ -180,9 +181,7 @@ impl PacketRetriever {
         let packet_id = packet_data.first().map(|&byte| byte).unwrap();
         println!("Received Packet ID: {}", packet_id);
     }
-
 }
 
 pub(crate) mod client;
-pub(crate) mod macros;
 pub(crate) mod server;

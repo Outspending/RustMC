@@ -1,65 +1,10 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use tokio::{io::AsyncWriteExt, net::TcpStream, sync::Mutex};
-
-use crate::{
-    errors::{ConnectionError, PacketError},
-    protocol::{server::handshake::HandshakePacket, Packet},
-    server::MinecraftServer,
-};
-
-/// A trait representing a client that can connect to a Minecraft server.
-#[async_trait]
-pub trait Client {
-    /// Creates a new client instance with the given connection, username, and UUID.
-    ///
-    /// # Arguments
-    ///
-    /// * `connection` - The TCP stream connection to the server.
-    /// * `username` - The username of the client.
-    /// * `uuid` - The UUID of the client.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of the client.
-    fn new(connection: TcpStream, username: &str, uuid: UUID) -> Self;
-
-    /// Connects the client to the specified Minecraft server.
-    ///
-    /// # Arguments
-    ///
-    /// * `server` - The Minecraft server to connect to.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` indicating whether the connection was successful or an error occurred.
-    async fn connect(&mut self, server: &mut MinecraftServer) -> Result<(), ConnectionError>;
-
-    /// Disconnects the client from the server.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` indicating whether the disconnection was successful or an error occurred.
-    fn disconnect(&self) -> Result<(), ConnectionError>;
-
-    /// Sends a packet to the server.
-    ///
-    /// # Arguments
-    ///
-    /// * `packet` - The packet to send.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` indicating whether the packet was sent successfully or an error occurred.
-    ///
-    /// # Generic
-    ///
-    /// This method is generic over the type `P`, which must implement the `Packet` trait and be `Sync`.
-    async fn send_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
-    where
-        P: Packet + Sync;
-}
+use client::Client;
+use rustmc_errors::{ConnectionError, PacketError};
+use tokio::net::TcpStream;
+use uuid::UUID;
 
 /// Represents a player in the game.
 #[derive(Debug, Clone)]
@@ -72,11 +17,6 @@ pub struct Player {
 
     /// The UUID (Universally Unique Identifier) of the player.
     pub uuid: UUID,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub struct UUID {
-    pub data: [u8; 16],
 }
 
 #[async_trait]
@@ -152,8 +92,8 @@ impl Client for Player {
     ///
     /// Returns `Ok(())` if the disconnection was successful.
     /// Returns an `Err` variant if there was an error during the disconnection process.
-    fn disconnect(&self) -> Result<(), ConnectionError> {
-        Ok(())
+    fn disconnect(&self, message: &str) {
+        unimplemented!()
     }
 
     /// Sends a packet over the network connection.
@@ -197,3 +137,6 @@ impl Client for Player {
         }
     }
 }
+
+pub(crate) mod client;
+pub(crate) mod uuid;
