@@ -12,22 +12,7 @@ async fn main() {
     server.start_server();
     println!("Server started.");
 
-    packet_testing().await;
     signal::ctrl_c().await.unwrap();
-}
-
-async fn packet_testing() {
-    let packet = HandshakePacket {
-        protocol_version: 271,
-        server_address: "127.0.0.1".to_string(),
-        server_port: 8080,
-        next_state: 0x01,
-    };
-
-    let data: Vec<u8> = packet.serialize();
-    let packet: HandshakePacket = HandshakePacket::deserialize(data.clone()).unwrap();
-    println!("Serialized packet: {:?}", data);
-    println!("Protocol packet: {:?}", packet.into_protocol_format());
 }
 
 pub(crate) mod errors;

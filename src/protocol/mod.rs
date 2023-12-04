@@ -61,7 +61,7 @@ impl PacketFormatter {
     where
         P: Packet
     {
-        let mut data = packet.serialize();
+        let data = packet.serialize();
         let mut formatted_data = Vec::new();
 
         formatted_data.extend_from_slice(&((data.len() + 1) as u8).to_be_bytes());   // Length of Packet ID + Data

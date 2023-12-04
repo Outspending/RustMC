@@ -1,11 +1,11 @@
 use std::{
     cell::{RefCell, Ref},
-    sync::Arc,
+    sync::Arc, io::{Cursor, ErrorKind}, vec
 };
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::{net::{TcpListener, TcpStream}, sync::Mutex, io::AsyncReadExt};
 
 use crate::{
-    errors::PacketError,
+    errors::{PacketError, ConnectionError},
     players::{Client, Player, UUID},
     protocol::Packet,
 };
@@ -188,4 +188,33 @@ async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
     println!("New connection from {}", peer_addr);
 
     player.connect(server).await.unwrap();
+
+    loop {
+        if let Err(e) = read_packet(player.connection.clone()).await {
+            eprintln!("Error reading packet: {:?}", e);
+            break;
+        }
+    }
+}
+
+async fn read_packet(stream: Arc<Mutex<TcpStream>>) -> Result<(), ConnectionError> {
+    let mut stream = stream.lock().await;
+
+    let mut length_buffer = [0u8; 4];
+    stream.read_exact(&mut length_buffer).await.unwrap();
+
+    let length = Cursor::new(length_buffer).read_u32().await.unwrap() as usize;
+
+    let mut packet_buffer = vec![0u8; length];
+    match stream.read_exact(&mut packet_buffer).await {
+        Ok(_) => {
+            println!("Received Packet: {:?}", length_buffer);
+            Ok(())
+        }
+        Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
+            eprintln!("Connection closed by client.");
+            Err(ConnectionError::InvalidLogin)
+        }
+        Err(_) => Err(ConnectionError::InvalidLogin)
+    }
 }
