@@ -1,14 +1,13 @@
 use std::{
-    cell::{RefCell, Ref},
-    sync::Arc, io::{Cursor, ErrorKind}, vec
+    cell::{Ref, RefCell},
+    sync::Arc,
 };
-use bytes::BytesMut;
-use tokio::{net::{TcpListener, TcpStream}, sync::Mutex, io::AsyncReadExt};
+use tokio::{net::TcpListener, sync::Mutex};
 
 use crate::{
-    errors::{PacketError, ConnectionError},
+    errors::PacketError,
     players::{Client, Player, UUID},
-    protocol::{Packet, PacketFormatter},
+    protocol::{Packet, PacketRetriever},
 };
 
 /// Represents a Minecraft server.
@@ -72,12 +71,12 @@ impl MinecraftServer {
     /// ```
     pub fn start_server(&self) {
         let server = self.clone();
-    
+
         tokio::spawn(async move {
             let listener = TcpListener::bind(format!("{}:{}", server.address, server.port))
                 .await
                 .unwrap();
-    
+
             loop {
                 match listener.accept().await {
                     Ok((stream, _)) => {
@@ -87,7 +86,7 @@ impl MinecraftServer {
                             username: "wowie".into(),
                             uuid: UUID { data: [0; 16] },
                         };
-    
+
                         server.players.borrow_mut().push(player.clone());
                         tokio::spawn(async move {
                             handle_connection(&mut player, &mut server_clone).await;
@@ -100,7 +99,6 @@ impl MinecraftServer {
             }
         });
     }
-    
 
     /// Returns a vector of players currently connected to the server.
     pub fn get_players(&self) -> Ref<'_, Vec<Player>> {
@@ -155,6 +153,13 @@ impl MinecraftServer {
 
         Ok(())
     }
+
+    pub async fn send_server_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
+    where
+        P: Packet + Sync,
+    {
+        unimplemented!()
+    }
 }
 
 /// Handles a new connection from a client.
@@ -189,48 +194,7 @@ async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
 
     let mut connection = player.connection.lock().await;
     let peer_addr = connection.peer_addr().unwrap();
-    let mut buffer = BytesMut::with_capacity(1024);
     println!("New connection from {}", peer_addr);
 
-    loop {
-        let mut read_buffer = [0; 1024];
-        let bytes_read = connection.read(&mut read_buffer).await.unwrap();
-
-        if bytes_read == 0 {
-            break;
-        }
-
-        buffer.extend_from_slice(&read_buffer[..bytes_read]);
-
-        if let Some((length, bytes_read)) = PacketFormatter::read_varint(&mut buffer) {
-            if buffer.len() >= length {
-                let packet_data = buffer.split_to(length);
-                println!("Received Packet: {:?}", packet_data);
-            } else {
-                break;
-            }
-        }
-    }
-}
-
-async fn read_packet(stream: Arc<Mutex<TcpStream>>) -> Result<(), ConnectionError> {
-    let mut stream = stream.lock().await;
-
-    let mut length_buffer = [0u8; 4];
-    stream.read_exact(&mut length_buffer).await.unwrap();
-
-    let length = Cursor::new(length_buffer).read_u32().await.unwrap() as usize;
-
-    let mut packet_buffer = vec![0u8; length];
-    match stream.read_exact(&mut packet_buffer).await {
-        Ok(_) => {
-            println!("Received Packet: {:?}", length_buffer);
-            Ok(())
-        }
-        Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
-            eprintln!("Connection closed by client.");
-            Err(ConnectionError::InvalidLogin)
-        }
-        Err(_) => Err(ConnectionError::InvalidLogin)
-    }
+    PacketRetriever::retrieve_packets(&mut connection).await;
 }

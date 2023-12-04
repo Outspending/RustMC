@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::protocol::{server::handshake::HandshakePacket, Packet};
 use server::MinecraftServer;
 use tokio::signal;
 
