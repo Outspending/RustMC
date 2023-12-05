@@ -1,3 +1,5 @@
+use crate::server_packet;
+
 server_packet!(0x00, HandshakePacket {
     protocol_version: u16,
     server_address: String,

@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 /// A trait representing a tickable server.
-#[s]
+#[async_trait]
 pub trait TickableServer {
     
     /// Creates a new instance of the server with the specified address and port.
@@ -372,3 +372,5 @@ async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
 
     PacketRetriever::retrieve_packets(&mut connection).await;
 }
+
+pub(crate) mod client;

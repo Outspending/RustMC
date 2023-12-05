@@ -3,7 +3,7 @@ macro_rules! server_packet {
     ($id: literal, $name: ident {
         $( $field: ident : $ty: ty ),* $(,)?
     }) => {
-        use crate::protocol::Packet;
+        use crate::Packet;
         use serde::{Serialize, Deserialize};
 
         #[derive(Debug, Serialize, Deserialize)]

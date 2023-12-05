@@ -1,9 +1,3 @@
-use async_trait::async_trait;
-use rustmc_server::MinecraftServer;
-use tokio::net::TcpStream;
-
-use crate::uuid::UUID;
-
 /// A trait representing a client that can connect to a Minecraft server.
 #[async_trait]
 pub trait Client {
