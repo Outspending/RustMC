@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! server_packet {
+macro_rules! packet {
     ($id: literal, $name: ident {
         $( $field: ident : $ty: ty ),* $(,)?
     }) => {

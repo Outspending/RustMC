@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
@@ -6,10 +6,10 @@ use tokio::sync::Mutex;
 use crate::Packet;
 
 /// A vector of boxed packets.
-type PacketVec = Vec<(u8, Box<dyn Packet + 'static>)>;
+type PacketVec = HashMap<u8, Box<dyn Packet + 'static>>;
 
 /// A vector of boxed packets wrapped in a mutex.
-static mut CLIENT_PACKETS: Lazy<Arc<Mutex<PacketVec>>>= Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
+static mut CLIENT_PACKETS: Lazy<Arc<Mutex<PacketVec>>>= Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 pub struct PacketByteConverter;
 
@@ -47,19 +47,31 @@ impl PacketByteConverter {
     ///     register_packet(MyPacket).await;
     /// }
     /// ```
-    pub async unsafe fn register_packet<P>(packet: P)
+    pub async unsafe fn register_packet<P>(&self, packet: P)
     where
         P: Packet + 'static
     {
         let packet = Box::new(packet);
-        CLIENT_PACKETS.lock().await.push((packet.id(), packet));
+        CLIENT_PACKETS.lock().await.insert(packet.id(), packet);
     }
 
-    pub async fn get_packet<P>(data: Vec<u8>) -> Option<P>
-    where
-        P: Packet + 'static
-    {
-        todo!("Implement PacketByteConverter::get_packet()") // TODO: Implement PacketByteConverter::get_packet()
+    /// Retrieves a packet from the given `BytesMut` data.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `data` - The `BytesMut` data containing the packet.
+    /// 
+    /// # Returns
+    /// 
+    /// Returns an `Option<Box<dyn Packet + 'static>>` representing the retrieved packet, or `None` if the packet is not found.
+    /// 
+    /// # Safety
+    /// 
+    /// This function is marked as `unsafe` because it performs raw pointer dereferencing.
+    pub async unsafe fn get_packet(&self, packet_id: u8) -> Option<Box<dyn Packet + 'static>> {
+        return CLIENT_PACKETS.lock().await
+            .get(&packet_id)
+            .map(|box_packet| (*box_packet).clone());
     }
 
 }

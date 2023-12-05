@@ -21,3 +21,4 @@ members = [
 [dependencies]
 tokio = { version = "1.34.0", features = ["full"] }
 rustmc-server = { path = "rustmc-server" }
+rustmc-packets = { path = "rustmc-packets" }
