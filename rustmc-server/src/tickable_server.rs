@@ -64,7 +64,7 @@ pub trait TickableServer {
     /// # Returns
     ///
     /// Returns an `Option` containing the player that matches the specified filter function, if found.
-    fn get_player_filter(&self, filter: impl Fn(&Player) -> bool) -> Option<Player>;
+    fn get_player_filter(&self, filter: impl Fn(&Player) -> bool) -> Vec<Player>;
 
     /// Broadcasts a packet to all connected players asynchronously.
     ///

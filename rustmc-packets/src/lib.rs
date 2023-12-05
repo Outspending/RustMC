@@ -6,7 +6,7 @@ use tokio::{io::AsyncReadExt, net::TcpStream, sync::MutexGuard};
 ///
 /// This trait is used for all packets.
 ///
-pub trait Packet {
+pub trait Packet: Sync + Send {
     ///
     /// Returns the ID of the packet.
     ///

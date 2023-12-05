@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rustmc_errors::{ConnectionError, PacketError};
+use rustmc_errors::ConnectionError;
 use rustmc_packets::Packet;
 use tokio::net::TcpStream;
 
@@ -40,7 +40,7 @@ pub trait Client {
     /// # Returns
     ///
     /// A `Result` indicating whether the disconnection was successful or an error occurred.
-    fn disconnect(&self);
+    async fn disconnect(&self);
 
     /// Sends a packet to the server.
     ///

@@ -92,8 +92,8 @@ impl Client for Player {
     ///
     /// Returns `Ok(())` if the disconnection was successful.
     /// Returns an `Err` variant if there was an error during the disconnection process.
-    fn disconnect(&self) {
-        self.connection.disconnect();
+    async fn disconnect(&self) {
+        self.connection.disconnect().await;
     }
 
     /// Sends a packet over the network connection.

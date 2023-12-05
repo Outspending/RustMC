@@ -193,7 +193,7 @@ impl TickableServer for MinecraftServer {
     /// An optional reference to the player if found, otherwise None.
     ///
     fn get_player_username(&self, username: &str) -> Option<Player> {
-        self.get_player_filter(|player| player.username == username)
+        self.get_player_filter(|player| player.username == username).first().cloned()
     }
 
     /// Retrieves a player by their UUID.
@@ -207,7 +207,7 @@ impl TickableServer for MinecraftServer {
     /// An optional reference to the player if found, otherwise None.
     ///
     fn get_player_uuid(&self, uuid: UUID) -> Option<Player> {
-        self.get_player_filter(|player| player.uuid == uuid)
+        self.get_player_filter(|player| player.uuid == uuid).first().cloned()
     }
 
     /// Returns an optional player that matches the given filter function.
@@ -220,14 +220,15 @@ impl TickableServer for MinecraftServer {
     ///
     /// * `Some(player)` - If a player is found that matches the filter function.
     /// * `None` - If no player is found that matches the filter function.
-    fn get_player_filter(&self, filter: impl Fn(&Player) -> bool) -> Option<Player> {
+    fn get_player_filter(&self, filter: impl Fn(&Player) -> bool) -> Vec<Player> {
+        let mut players = Vec::new();
         for player in self.get_players().iter() {
             if filter(player) {
-                return Some(player.clone());
+                players.push(player.clone());
             }
         }
 
-        None
+        players
     }
 
     /// Broadcasts a packet to all connected players.
