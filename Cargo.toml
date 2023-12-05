@@ -7,10 +7,15 @@ edition = "2021"
 
 [workspace]
 members = [
+    "rustmc-blocks",
     "rustmc-derives",
+    "rustmc-entities",
     "rustmc-errors",
+    "rustmc-nbt",
     "rustmc-packets",
+    "rustmc-plugin",
     "rustmc-server",
+    "rustmc-utils",
 ]
 
 [dependencies]
