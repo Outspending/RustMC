@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rustmc_server::MinecraftServer;
+use rustmc_server::{MinecraftServer, tickable_server::TickableServer};
 use tokio::signal;
 
 #[tokio::main]

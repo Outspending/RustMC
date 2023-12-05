@@ -1,3 +1,14 @@
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use rustmc_errors::{ConnectionError, PacketError};
+use rustmc_packets::{server::handshake::HandshakePacket, Packet};
+use tokio::{io::AsyncWriteExt, net::TcpStream, sync::Mutex};
+
+use crate::MinecraftServer;
+
+use self::{client::Client, uuid::UUID};
+
 /// Represents a player in the game.
 #[derive(Debug, Clone)]
 pub struct Player {
@@ -130,5 +141,5 @@ impl Client for Player {
     }
 }
 
-pub(crate) mod client;
-pub(crate) mod uuid;
+pub mod client;
+pub mod uuid;

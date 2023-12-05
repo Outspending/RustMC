@@ -1,6 +1,16 @@
+use async_trait::async_trait;
+use rustmc_errors::{ConnectionError, PacketError};
+use rustmc_packets::Packet;
+use tokio::net::TcpStream;
+
+use crate::MinecraftServer;
+
+use super::uuid::UUID;
+
 /// A trait representing a client that can connect to a Minecraft server.
 #[async_trait]
 pub trait Client {
+    
     /// Creates a new client instance with the given connection, username, and UUID.
     ///
     /// # Arguments
@@ -48,4 +58,5 @@ pub trait Client {
     async fn send_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
     where
         P: Packet + Sync;
+
 }
