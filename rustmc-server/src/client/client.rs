@@ -40,7 +40,7 @@ pub trait Client {
     /// # Returns
     ///
     /// A `Result` indicating whether the disconnection was successful or an error occurred.
-    fn disconnect(&self, message: &str);
+    fn disconnect(&self);
 
     /// Sends a packet to the server.
     ///
@@ -55,7 +55,7 @@ pub trait Client {
     /// # Generic
     ///
     /// This method is generic over the type `P`, which must implement the `Packet` trait and be `Sync`.
-    async fn send_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
+    async fn send_packet<P>(&mut self, packet: &P)
     where
         P: Packet + Sync;
 

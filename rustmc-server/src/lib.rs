@@ -6,7 +6,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use client::{client::Client, uuid::UUID, Player};
+use client::{client::Client, uuid::UUID, Player, connection::ClientConnection};
 use rustmc_errors::PacketError;
 use rustmc_packets::{Packet, PacketRetriever};
 use tickable_server::TickableServer;
@@ -86,7 +86,7 @@ impl TickableServer for MinecraftServer {
                         Ok((stream, _)) => {
                             let mut server_clone = server.clone();
                             let mut player = Player {
-                                connection: Arc::new(Mutex::new(stream)),
+                                connection: ClientConnection::new(stream),
                                 username: "wowie".into(),
                                 uuid: UUID { data: [0; 16] },
                             };
@@ -166,7 +166,7 @@ impl TickableServer for MinecraftServer {
     /// ```
     fn stop(&self) {
         for player in self.get_players().iter() {
-            player.disconnect("Server is shutting down.");
+            player.disconnect();
         }
 
         process::exit(0);
@@ -285,11 +285,11 @@ impl TickableServer for MinecraftServer {
 async fn handle_connection(player: &mut Player, server: &mut MinecraftServer) {
     player.connect(server).await.unwrap();
 
-    let mut connection = player.connection.lock().await;
+    let mut connection = player.connection.connection.lock().await;
     let peer_addr = connection.peer_addr().unwrap();
     println!("New connection from {}", peer_addr);
 
-    PacketRetriever::retrieve_packets(&mut connection).await;
+    PacketRetriever.retrieve_packets(&mut connection).await;
 }
 
 pub mod client;

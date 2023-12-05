@@ -58,6 +58,7 @@ impl PacketFormatter {
     /// | Packet ID | VarInt     |
     /// | Data      | Byte Array | Depends on the connection state and packet ID, see the sections below
     ///
+    #[inline]
     pub fn format_data<P>(packet: &P) -> Vec<u8>
     where
         P: Packet,
@@ -87,6 +88,7 @@ impl PacketFormatter {
     ///
     /// A tuple containing the parsed integer value and the number of bytes consumed, wrapped in an `Option`.
     /// If the integer cannot be parsed or if the buffer is empty, `None` is returned.
+    #[inline]
     pub fn read_varint(buffer: &mut BytesMut) -> Option<(usize, usize)> {
         let mut result = 0;
         let mut count = 0;
@@ -139,7 +141,7 @@ impl PacketRetriever {
     ///
     /// packet_handler.retrieve_packets(&player).await;
     /// ```
-    pub async fn retrieve_packets(connection: &mut MutexGuard<'_, TcpStream>) {
+    pub async fn retrieve_packets(&self, connection: &mut MutexGuard<'_, TcpStream>) {
         let mut buffer = BytesMut::with_capacity(1024);
 
         loop {
@@ -157,7 +159,7 @@ impl PacketRetriever {
                     if let Some((length, _)) = PacketFormatter::read_varint(&mut buffer) {
                         if buffer.len() >= length {
                             let packet_data = buffer.split_to(length);
-                            PacketRetriever::process_packet(packet_data).await;
+                            self.process_packet(packet_data).await;
                         } else {
                             break;
                         }
@@ -175,7 +177,27 @@ impl PacketRetriever {
         }
     }
 
-    pub async fn process_packet(packet_data: BytesMut) {
+    /// Processes a packet asynchronously.
+    ///
+    /// This function takes in a `BytesMut` object representing the packet data and prints the received packet and its ID.
+    /// The packet ID is extracted from the first byte of the packet data.
+    ///
+    /// # Arguments
+    ///
+    /// * `packet_data` - The packet data as a `BytesMut` object.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bytes::BytesMut;
+    /// use rustmc_packets::PacketProcessor;
+    ///
+    /// let packet_data = BytesMut::from(&[0x01, 0x02, 0x03][..]);
+    /// let processor = PacketProcessor::new();
+    /// processor.process_packet(packet_data).await;
+    /// ```
+    #[inline]
+    pub async fn process_packet(&self, packet_data: BytesMut) {
         println!("Received Packet: {:?}", packet_data);
 
         let packet_id = packet_data.first().map(|&byte| byte).unwrap();
@@ -184,5 +206,5 @@ impl PacketRetriever {
 }
 
 pub mod client;
-pub mod server;
 pub mod macros;
+pub mod server;

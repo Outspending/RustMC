@@ -1,19 +1,17 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use rustmc_errors::{ConnectionError, PacketError};
+use rustmc_errors::ConnectionError;
 use rustmc_packets::{server::handshake::HandshakePacket, Packet};
-use tokio::{io::AsyncWriteExt, net::TcpStream, sync::Mutex};
+use tokio::net::TcpStream;
 
 use crate::MinecraftServer;
 
-use self::{client::Client, uuid::UUID};
+use self::{client::Client, uuid::UUID, connection::ClientConnection};
 
 /// Represents a player in the game.
 #[derive(Debug, Clone)]
 pub struct Player {
     /// The connection of the player.
-    pub connection: Arc<Mutex<TcpStream>>,
+    pub connection: ClientConnection,
 
     /// The username of the player.
     pub username: String,
@@ -37,7 +35,7 @@ impl Client for Player {
     /// A new instance of the `Player` struct.
     fn new(connection: TcpStream, username: &str, uuid: UUID) -> Self {
         Self {
-            connection: Arc::new(Mutex::new(connection)),
+            connection: ClientConnection::new(connection),
             username: username.to_string(),
             uuid,
         }
@@ -83,8 +81,7 @@ impl Client for Player {
             server_port: server.port.clone(),
             next_state: 0x02, // Login
         })
-        .await
-        .unwrap();
+        .await;
 
         Ok(())
     }
@@ -95,8 +92,8 @@ impl Client for Player {
     ///
     /// Returns `Ok(())` if the disconnection was successful.
     /// Returns an `Err` variant if there was an error during the disconnection process.
-    fn disconnect(&self, message: &str) {
-        unimplemented!()
+    fn disconnect(&self) {
+        self.connection.disconnect();
     }
 
     /// Sends a packet over the network connection.
@@ -124,22 +121,19 @@ impl Client for Player {
     ///     Err(err) => println!("Error sending packet: {:?}", err),
     /// }
     /// ```
-    async fn send_packet<P>(&mut self, packet: &P) -> Result<(), PacketError>
+    async fn send_packet<P>(&mut self, packet: &P)
     where
         P: Packet + Sync,
     {
-        let connection = self.connection.clone();
-        let data = packet.into_protocol_format();
-        println!("Sent Packet: {:?}", data.clone()); // TODO: DEBUG
+        let packet_result = self.connection.send_packet(packet).await;
 
-        let mut connection = connection.lock().await;
-
-        match connection.write_all(&data).await {
-            Ok(_) => Ok(()),
-            Err(_) => Err(PacketError::ErrorSendingPacket),
+        match packet_result {
+            Ok(_) => {},
+            Err(err) => println!("Error sending packet: {:?}", err),
         }
     }
 }
 
 pub mod client;
 pub mod uuid;
+pub mod connection;
